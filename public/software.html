@@ -304,6 +304,57 @@
             background: #667eea;
             color: white;
         }
+
+        /* 高亮闪烁动画 */
+        @keyframes highlightPulse {
+            0%, 100% {
+                opacity: 0.3;
+                box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+            }
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 30px rgba(102, 126, 234, 0.9);
+            }
+        }
+
+        .highlight-overlay {
+            position: absolute;
+            background: rgba(102, 126, 234, 0.4);
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: highlightPulse 0.5s ease-in-out 6;
+            display: none;
+        }
+
+        .highlight-overlay.show {
+            display: block;
+        }
+
+        .highlight-label {
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            font-weight: bold;
+        }
+
+        .highlight-arrow {
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #667eea;
+        }
     </style>
 </head>
 <body>
@@ -355,6 +406,10 @@
                         <div class="interface-placeholder" id="interface-placeholder">
                             选择一个工作流程开始学习
                         </div>
+                        <div class="highlight-overlay" id="highlight-overlay">
+                            <div class="highlight-label" id="highlight-label">元素名称</div>
+                            <div class="highlight-arrow"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -379,6 +434,8 @@
         let currentWorkflow = null;
         let currentStepIndex = 0;
         let completedSteps = [];
+        let interfaceElements = [];
+        let currentHighlightTimeout = null;
 
         // 加载软件信息
         async function loadSoftwareData() {
@@ -438,6 +495,7 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    interfaceElements = result.data;
                     displayInterfaceElements(result.data);
                 }
             } catch (error) {
@@ -454,8 +512,8 @@
                 return;
             }
 
-            container.innerHTML = elements.map(element => `
-                <li>
+            container.innerHTML = elements.map((element, index) => `
+                <li onclick="highlightInterfaceElement(${index})" data-index="${index}">
                     <strong>${element.name}</strong><br>
                     <small>${element.type || ''}</small>
                 </li>
@@ -491,6 +549,84 @@
                     ${operation.shortcut ? `<br><small>${operation.shortcut}</small>` : ''}
                 </li>
             `).join('');
+        }
+
+        // 高亮闪烁界面元素
+        function highlightInterfaceElement(index) {
+            // 清除之前的定时器
+            if (currentHighlightTimeout) {
+                clearTimeout(currentHighlightTimeout);
+            }
+
+            const element = interfaceElements[index];
+            if (!element) return;
+
+            const overlay = document.getElementById('highlight-overlay');
+            const label = document.getElementById('highlight-label');
+            const interfaceBody = document.querySelector('.interface-body');
+
+            // 更新高亮标签
+            label.textContent = element.name;
+
+            // 根据元素类型计算高亮位置
+            let position = { top: 0, left: 0, width: 200, height: 100 };
+
+            switch (element.type) {
+                case 'menu_bar':
+                    position = { top: 0, left: 0, width: 600, height: 40 };
+                    break;
+                case 'toolbar':
+                    position = { top: 45, left: 0, width: 600, height: 50 };
+                    break;
+                case 'toolbox':
+                    position = { top: 100, left: 10, width: 80, height: 300 };
+                    break;
+                case 'status_bar':
+                    position = { top: 450, left: 0, width: 600, height: 35 };
+                    break;
+                case 'workspace':
+                    position = { top: 100, left: 100, width: 490, height: 345 };
+                    break;
+                default:
+                    // 根据元素的 position 配置（如果有）
+                    if (element.simulated_elements) {
+                        const firstKey = Object.keys(element.simulated_elements)[0];
+                        const firstElement = element.simulated_elements[firstKey];
+                        if (firstElement.position) {
+                            position = {
+                                top: firstElement.position.y || 0,
+                                left: firstElement.position.x || 0,
+                                width: 150,
+                                height: 40
+                            };
+                        }
+                    }
+                    // 如果没有配置位置，使用默认位置
+                    position = { top: 100 + (index * 60), left: 100, width: 200, height: 50 };
+            }
+
+            // 设置高亮位置和大小
+            overlay.style.top = position.top + 'px';
+            overlay.style.left = position.left + 'px';
+            overlay.style.width = position.width + 'px';
+            overlay.style.height = position.height + 'px';
+
+            // 显示高亮
+            overlay.classList.add('show');
+
+            // 3秒后隐藏高亮
+            currentHighlightTimeout = setTimeout(() => {
+                overlay.classList.remove('show');
+            }, 3000);
+
+            // 高亮对应的列表项
+            document.querySelectorAll('#interface-list li').forEach((li, i) => {
+                if (i === index) {
+                    li.classList.add('active');
+                } else {
+                    li.classList.remove('active');
+                }
+            });
         }
 
         // 开始工作流程
