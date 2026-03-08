@@ -1,0 +1,17 @@
+# Dependencies
+vendor/
+node_modules/
+
+# Environment
+.env
+
+# Logs
+logs/
+*.log
+
+# Tests
+.phpunit.result.cache
+
+# OS
+.DS_Store
+Thumbs.db

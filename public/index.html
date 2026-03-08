@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软件学习平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .software-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .software-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+        }
+
+        .software-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .software-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.5em;
+        }
+
+        .software-card .version {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .software-card .description {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .software-card .type {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .start-button {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 25px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .start-button:hover {
+            background: #5568d3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ 软件学习平台</h1>
+            <p>通过模拟操作学习各种软件的使用</p>
+        </div>
+
+        <div id="software-list" class="software-grid">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        // 加载软件列表
+        async function loadSoftwareList() {
+            try {
+                const response = await fetch('/api/software');
+                const result = await response.json();
+
+                if (result.success) {
+                    displaySoftwareList(result.data);
+                } else {
+                    showError('加载失败: ' + result.error);
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            }
+        }
+
+        // 显示软件列表
+        function displaySoftwareList(softwareList) {
+            const container = document.getElementById('software-list');
+
+            if (softwareList.length === 0) {
+                container.innerHTML = '<div class="error">暂无可用的软件配置</div>';
+                return;
+            }
+
+            container.innerHTML = softwareList.map(software => `
+                <div class="software-card" onclick="startLearning('${software.id}')">
+                    <h3>${software.name}</h3>
+                    <div class="version">版本: ${software.version}</div>
+                    <div class="description">${software.description || '暂无描述'}</div>
+                    <span class="type">${getTypeLabel(software.type)}</span>
+                    <button class="start-button">开始学习</button>
+                </div>
+            `).join('');
+        }
+
+        // 获取类型标签
+        function getTypeLabel(type) {
+            const typeLabels = {
+                'image_processing': '图像处理',
+                'video_editor': '视频编辑',
+                'audio_editor': '音频编辑',
+                'text_editor': '文本编辑',
+                'general': '通用软件'
+            };
+            return typeLabels[type] || type;
+        }
+
+        // 开始学习
+        function startLearning(softwareId) {
+            window.location.href = `/software/${softwareId}`;
+        }
+
+        // 显示错误
+        function showError(message) {
+            const container = document.getElementById('software-list');
+            container.innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // 页面加载时获取软件列表
+        document.addEventListener('DOMContentLoaded', loadSoftwareList);
+    </script>
+</body>
+</html>
