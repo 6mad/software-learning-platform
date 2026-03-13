@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>软件学习论坛</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+        }
+
+        .header .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .header .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .forum-layout {
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .sidebar h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .category-list {
+            list-style: none;
+        }
+
+        .category-list li {
+            padding: 10px 15px;
+            margin-bottom: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .category-list li:hover {
+            background: #f0f0f0;
+        }
+
+        .category-list li.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .stats {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .stats .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            color: #666;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .toolbar h2 {
+            color: #333;
+        }
+
+        .toolbar .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .post-list {
+            list-style: none;
+        }
+
+        .post-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .post-item:hover {
+            background: #f9f9f9;
+        }
+
+        .post-item:last-child {
+            border-bottom: none;
+        }
+
+        .post-item.pinned {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+
+        .post-item h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        .post-item .meta {
+            display: flex;
+            gap: 20px;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+        }
+
+        .post-item .meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .post-item .preview {
+            color: #666;
+            line-height: 1.6;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .post-item .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        @media (max-width: 768px) {
+            .forum-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 软件学习论坛</h1>
+        <nav class="nav-links">
+            <a href="/">首页</a>
+            <a href="/forum" class="active">论坛</a>
+            <a href="/login" id="login-link" style="display: none;">登录</a>
+            <a href="/login" id="register-link" style="display: none;">注册</a>
+            <span id="user-info" style="display: none;">
+                <span id="username-display"></span>
+                <a href="#" id="logout-link">登出</a>
+            </span>
+        </nav>
+    </div>
+
+    <div class="container">
+        <div class="forum-layout">
+            <div class="sidebar">
+                <h3>分类</h3>
+                <ul class="category-list" id="category-list">
+                    <li class="loading">加载中...</li>
+                </ul>
+
+                <div class="stats">
+                    <h3>统计</h3>
+                    <div class="stat-item">
+                        <span>用户数</span>
+                        <span id="stat-users">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>帖子数</span>
+                        <span id="stat-posts">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>回复数</span>
+                        <span id="stat-replies">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="toolbar">
+                    <h2 id="category-title">全部帖子</h2>
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="openCreatePostModal()">+ 发帖</button>
+                    </div>
+                </div>
+
+                <ul class="post-list" id="post-list">
+                    <li class="loading">加载中...</li>
+                </ul>
+
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发帖模态框 -->
+    <div class="modal" id="create-post-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>发表新帖</h2>
+                <button class="modal-close" onclick="closeCreatePostModal()">&times;</button>
+            </div>
+            <form id="create-post-form">
+                <div class="form-group">
+                    <label for="post-title">标题</label>
+                    <input type="text" id="post-title" required maxlength="200" placeholder="请输入帖子标题">
+                </div>
+                <div class="form-group">
+                    <label for="post-category">分类</label>
+                    <select id="post-category">
+                        <option value="general">综合讨论</option>
+                        <option value="questions">问题求助</option>
+                        <option value="tutorials">教程分享</option>
+                        <option value="hardware">硬件相关</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="post-content">内容</label>
+                    <textarea id="post-content" required placeholder="请输入帖子内容"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">发表</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentCategory = 'all';
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentUser = null;
+
+        // 检查登录状态
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const result = await response.json();
+                
+                if (result.success && result.data.logged_in) {
+                    currentUser = result.data.user;
+                    updateNavigation();
+                } else {
+                    currentUser = null;
+                    updateNavigation();
+                }
+            } catch (error) {
+                console.error('检查登录状态失败:', error);
+                currentUser = null;
+                updateNavigation();
+            }
+        }
+
+        // 更新导航栏
+        function updateNavigation() {
+            const loginLink = document.getElementById('login-link');
+            const registerLink = document.getElementById('register-link');
+            const userInfo = document.getElementById('user-info');
+            const usernameDisplay = document.getElementById('username-display');
+
+            if (currentUser) {
+                // 已登录
+                loginLink.style.display = 'none';
+                registerLink.style.display = 'none';
+                userInfo.style.display = 'inline';
+                usernameDisplay.textContent = currentUser.username + (currentUser.is_admin ? ' (管理员)' : '');
+            } else {
+                // 未登录
+                loginLink.style.display = 'inline';
+                registerLink.style.display = 'inline';
+                userInfo.style.display = 'none';
+            }
+        }
+
+        // 登出
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    currentUser = null;
+                    updateNavigation();
+                    alert('已登出');
+                }
+            } catch (error) {
+                console.error('登出失败:', error);
+                alert('登出失败，请稍后重试');
+            }
+        }
+
+        // 加载分类列表
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/forum/categories');
+                const result = await response.json();
+
+                if (result.success) {
+                    displayCategories(result.data);
+                }
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        }
+
+        // 显示分类列表
+        function displayCategories(categories) {
+            const container = document.getElementById('category-list');
+
+            container.innerHTML = categories.map(cat => `
+                <li class="${cat.id === currentCategory ? 'active' : ''}"
+                    onclick="selectCategory('${cat.id}')">
+                    ${cat.name}
+                </li>
+            `).join('');
+        }
+
+        // 选择分类
+        function selectCategory(categoryId) {
+            currentCategory = categoryId;
+            currentPage = 1;
+            loadCategories(); // 更新高亮状态
+            loadPosts();
+        }
+
+        // 加载帖子列表
+        async function loadPosts() {
+            try {
+                const response = await fetch(`/api/forum/posts?page=${currentPage}&limit=20&category=${currentCategory}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayPosts(result.data.posts);
+                    displayPagination(result.data.pagination);
+
+                    // 更新标题
+                    const categoryMap = {
+                        'all': '全部帖子',
+                        'announcements': '公告',
+                        'general': '综合讨论',
+                        'questions': '问题求助',
+                        'tutorials': '教程分享',
+                        'hardware': '硬件相关'
+                    };
+                    document.getElementById('category-title').textContent = categoryMap[currentCategory] || '全部帖子';
+                } else {
+                    // 检查是否是数据库错误
+                    if (result.error && result.error.includes('数据库')) {
+                        displayDatabaseError(result.error, result.hint);
+                    } else {
+                        document.getElementById('post-list').innerHTML = `<li class="error">加载失败: ${result.error}</li>`;
+                    }
+                }
+            } catch (error) {
+                console.error('加载帖子失败:', error);
+                document.getElementById('post-list').innerHTML = '<li class="error">网络错误，请检查连接</li>';
+            }
+        }
+
+        // 显示数据库错误
+        function displayDatabaseError(error, hint) {
+            const container = document.getElementById('post-list');
+            container.innerHTML = `
+                <li class="error" style="padding: 30px; text-align: left;">
+                    <h3 style="color: #c33; margin-bottom: 15px;">⚠️ 数据库连接失败</h3>
+                    <p style="margin-bottom: 10px;">${escapeHtml(error)}</p>
+                    <p style="margin-bottom: 15px; color: #666; font-size: 0.9em;">${hint || ''}</p>
+                    <div style="background: #f9f9f9; padding: 15px; border-radius: 8px; font-size: 0.9em;">
+                        <strong>如何解决：</strong>
+                        <ol style="margin: 10px 0 0 20px; line-height: 1.6;">
+                            <li>确保 MySQL 服务已启动</li>
+                            <li>创建 .env 文件并配置数据库连接信息</li>
+                            <li>运行 <code style="background: #eee; padding: 2px 6px; border-radius: 3px;">php init-db.php</code> 初始化数据库</li>
+                        </ol>
+                    </div>
+                </li>
+            `;
+        }
+
+        // 显示帖子列表
+        function displayPosts(posts) {
+            const container = document.getElementById('post-list');
+
+            if (posts.length === 0) {
+                container.innerHTML = '<li class="loading">暂无帖子</li>';
+                return;
+            }
+
+            container.innerHTML = posts.map(post => `
+                <li class="post-item ${post.is_pinned ? 'pinned' : ''}" onclick="viewPost(${post.id})">
+                    <h3>
+                        ${post.is_pinned ? '📌 ' : ''}
+                        ${escapeHtml(post.title)}
+                    </h3>
+                    <div class="meta">
+                        <span>👤 ${escapeHtml(post.username)}</span>
+                        <span>📅 ${formatDate(post.created_at)}</span>
+                        ${post.category ? `<span>🏷️ ${escapeHtml(post.category)}</span>` : ''}
+                    </div>
+                    <div class="preview">${escapeHtml(post.content)}</div>
+                    <div class="stats">
+                        <span>👁️ ${post.views} 浏览</span>
+                        <span>💬 ${post.reply_count} 回复</span>
+                        <span>❤️ ${post.like_count} 点赞</span>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // 显示分页
+        function displayPagination(pagination) {
+            const container = document.getElementById('pagination');
+            totalPages = pagination.total_pages;
+
+            let html = '';
+
+            // 上一页
+            html += `<button ${pagination.page === 1 ? 'disabled' : ''} onclick="changePage(${pagination.page - 1})">上一页</button>`;
+
+            // 页码
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= pagination.page - 2 && i <= pagination.page + 2)) {
+                    html += `<button class="${i === pagination.page ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+                } else if (i === pagination.page - 3 || i === pagination.page + 3) {
+                    html += `<span>...</span>`;
+                }
+            }
+
+            // 下一页
+            html += `<button ${pagination.page === totalPages ? 'disabled' : ''} onclick="changePage(${pagination.page + 1})">下一页</button>`;
+
+            container.innerHTML = html;
+        }
+
+        // 切换页面
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                loadPosts();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        // 查看帖子详情
+        function viewPost(postId) {
+            window.location.href = `/forum/post/${postId}`;
+        }
+
+        // 加载统计信息
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/forum/stats');
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('stat-users').textContent = result.data.total_users;
+                    document.getElementById('stat-posts').textContent = result.data.total_posts;
+                    document.getElementById('stat-replies').textContent = result.data.total_replies;
+                }
+            } catch (error) {
+                console.error('加载统计失败:', error);
+            }
+        }
+
+        // 打开发帖模态框
+        function openCreatePostModal() {
+            if (!currentUser) {
+                // 未登录，跳转到登录页面
+                window.location.href = '/login';
+                return;
+            }
+            document.getElementById('create-post-modal').classList.add('active');
+        }
+
+        // 关闭发帖模态框
+        function closeCreatePostModal() {
+            document.getElementById('create-post-modal').classList.remove('active');
+            document.getElementById('create-post-form').reset();
+        }
+
+        // 发表帖子
+        document.getElementById('create-post-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const title = document.getElementById('post-title').value.trim();
+            const content = document.getElementById('post-content').value.trim();
+            const category = document.getElementById('post-category').value;
+
+            try {
+                const response = await fetch('/api/forum/posts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ title, content, category })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('帖子发表成功！');
+                    closeCreatePostModal();
+                    loadPosts();
+                    loadStats();
+                } else {
+                    alert('发表失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            }
+        });
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+
+            const minute = 60 * 1000;
+            const hour = 60 * minute;
+            const day = 24 * hour;
+
+            if (diff < minute) {
+                return '刚刚';
+            } else if (diff < hour) {
+                return Math.floor(diff / minute) + '分钟前';
+            } else if (diff < day) {
+                return Math.floor(diff / hour) + '小时前';
+            } else if (diff < 7 * day) {
+                return Math.floor(diff / day) + '天前';
+            } else {
+                return date.toLocaleDateString('zh-CN');
+            }
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 点击模态框外部关闭
+        document.getElementById('create-post-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeCreatePostModal();
+            }
+        });
+
+        // 登出链接点击事件
+        document.getElementById('logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus();
+            loadCategories();
+            loadPosts();
+            loadStats();
+        });
+    </script>
+</body>
+</html>

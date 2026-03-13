@@ -5,6 +5,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Slim\Routing\RouteCollectorProxy;
 use App\Controllers\SoftwareController;
+use App\Middleware\AuthMiddleware;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -51,6 +52,72 @@ $app->group('/api', function (RouteCollectorProxy $group) {
 
     // 模拟执行操作
     $group->post('/software/{id}/simulate/{operation}', [$controller, 'simulateOperation']);
+
+    // 用户认证路由
+    $userController = new \App\Controllers\UserController();
+
+    // 注册
+    $group->post('/auth/register', [$userController, 'register']);
+
+    // 登录
+    $group->post('/auth/login', [$userController, 'login']);
+
+    // 登出
+    $group->post('/auth/logout', [$userController, 'logout']);
+
+    // 检查登录状态
+    $group->get('/auth/check', [$userController, 'checkLogin']);
+
+    // 获取当前用户信息（需要登录）
+    $group->get('/auth/me', [$userController, 'getCurrentUser']);
+
+    // 更新用户信息（需要登录）
+    $group->put('/auth/user', [$userController, 'updateUser']);
+
+    // 修改密码（需要登录）
+    $group->post('/auth/change-password', [$userController, 'changePassword']);
+
+    // 论坛路由
+    $forumController = new \App\Controllers\ForumController();
+
+    // 论坛帖子列表
+    $group->get('/forum/posts', [$forumController, 'getPosts']);
+
+    // 论坛帖子详情
+    $group->get('/forum/posts/{id}', [$forumController, 'getPostById']);
+
+    // 创建帖子（需要登录）
+    $group->post('/forum/posts', [$forumController, 'createPost'])
+          ->add(new AuthMiddleware());
+
+    // 更新帖子（需要登录）
+    $group->put('/forum/posts/{id}', [$forumController, 'updatePost'])
+          ->add(new AuthMiddleware());
+
+    // 删除帖子（需要登录）
+    $group->delete('/forum/posts/{id}', [$forumController, 'deletePost'])
+          ->add(new AuthMiddleware());
+
+    // 获取帖子回复
+    $group->get('/forum/posts/{id}/replies', [$forumController, 'getReplies']);
+
+    // 创建回复（需要登录）
+    $group->post('/forum/posts/{id}/replies', [$forumController, 'createReply'])
+          ->add(new AuthMiddleware());
+
+    // 删除回复（需要登录）
+    $group->delete('/forum/replies/{reply_id}', [$forumController, 'deleteReply'])
+          ->add(new AuthMiddleware());
+
+    // 点赞/取消点赞帖子（需要登录）
+    $group->post('/forum/posts/{id}/like', [$forumController, 'togglePostLike'])
+          ->add(new AuthMiddleware());
+
+    // 获取论坛统计
+    $group->get('/forum/stats', [$forumController, 'getStats']);
+
+    // 获取分类列表
+    $group->get('/forum/categories', [$forumController, 'getCategories']);
 });
 
 // 前端页面路由（服务静态文件）
@@ -75,6 +142,44 @@ $app->get('/software/{id}', function (Request $request, Response $response, arra
         return $response->withHeader('Content-Type', 'text/html');
     }
     $response->getBody()->write('Software Learning Interface');
+    return $response->withHeader('Content-Type', 'text/plain');
+});
+
+// 论坛页面路由
+$app->get('/forum', function (Request $request, Response $response) {
+    $htmlPath = __DIR__ . '/forum.html';
+    if (file_exists($htmlPath)) {
+        $html = file_get_contents($htmlPath);
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    $response->getBody()->write('Forum');
+    return $response->withHeader('Content-Type', 'text/plain');
+});
+
+// 论坛帖子详情
+$app->get('/forum/post/{id}', function (Request $request, Response $response, array $args) {
+    $htmlPath = __DIR__ . '/forum-post.html';
+    if (file_exists($htmlPath)) {
+        $html = file_get_contents($htmlPath);
+        // 替换帖子 ID
+        $html = str_replace('{{POST_ID}}', $args['id'], $html);
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    $response->getBody()->write('Forum Post');
+    return $response->withHeader('Content-Type', 'text/plain');
+});
+
+// 登录注册页面
+$app->get('/login', function (Request $request, Response $response) {
+    $htmlPath = __DIR__ . '/login.html';
+    if (file_exists($htmlPath)) {
+        $html = file_get_contents($htmlPath);
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    $response->getBody()->write('Login');
     return $response->withHeader('Content-Type', 'text/plain');
 });
 

@@ -43,6 +43,25 @@
             opacity: 0.9;
         }
 
+        .header .nav-links {
+            margin-top: 20px;
+        }
+
+        .header .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            background: rgba(255,255,255,0.2);
+            transition: background 0.3s ease;
+            margin: 0 10px;
+            display: inline-block;
+        }
+
+        .header .nav-links a:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
         .software-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -128,6 +147,10 @@
         <div class="header">
             <h1>🖥️ 软件学习平台</h1>
             <p>通过模拟操作学习各种软件的使用</p>
+            <div class="nav-links">
+                <a href="/">学习平台</a>
+                <a href="/forum">💬 论坛交流</a>
+            </div>
         </div>
 
         <div id="software-list" class="software-grid">

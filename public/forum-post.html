@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帖子详情</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 1.5em;
+        }
+
+        .header .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .header .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: background 0.3s ease;
+        }
+
+        .header .nav-links a:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .breadcrumb {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .post-detail {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .post-header {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .post-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .post-meta {
+            display: flex;
+            gap: 20px;
+            color: #666;
+            font-size: 0.9em;
+            flex-wrap: wrap;
+        }
+
+        .post-meta .author {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .post-meta .author-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .post-content {
+            color: #333;
+            line-height: 1.8;
+            font-size: 1.05em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .post-stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+        }
+
+        .post-stats button {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .post-stats button:hover {
+            background: #f0f0f0;
+        }
+
+        .post-stats button.liked {
+            background: #ffebee;
+            border-color: #ffcdd2;
+            color: #c62828;
+        }
+
+        .replies-section {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .replies-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .reply-list {
+            list-style: none;
+        }
+
+        .reply-item {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .reply-item:last-child {
+            border-bottom: none;
+        }
+
+        .reply-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .reply-author {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reply-author .avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #764ba2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .reply-author .name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .reply-time {
+            color: #999;
+            font-size: 0.85em;
+        }
+
+        .reply-content {
+            color: #333;
+            line-height: 1.6;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+
+        .reply-actions {
+            display: flex;
+            gap: 15px;
+        }
+
+        .reply-actions button {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: color 0.3s ease;
+        }
+
+        .reply-actions button:hover {
+            color: #667eea;
+        }
+
+        .reply-form {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .reply-form h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 20px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+
+        .back-button:hover {
+            background: #f0f0f0;
+        }
+
+        @media (max-width: 768px) {
+            .post-meta {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .post-stats {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>💬 软件学习论坛</h1>
+        <nav class="nav-links">
+            <a href="/">首页</a>
+            <a href="/forum">论坛</a>
+        </nav>
+    </div>
+
+    <div class="container">
+        <a href="/forum" class="back-button">← 返回论坛</a>
+
+        <div class="breadcrumb">
+            <a href="/forum">论坛</a> > <span id="breadcrumb-post-title">帖子详情</span>
+        </div>
+
+        <div class="post-detail" id="post-detail">
+            <div class="loading">加载中...</div>
+        </div>
+
+        <div class="replies-section">
+            <h2>回复 (<span id="reply-count">0</span>)</h2>
+            <ul class="reply-list" id="reply-list">
+                <li class="loading">加载中...</li>
+            </ul>
+        </div>
+
+        <div class="reply-form">
+            <h2>发表回复</h2>
+            <form id="reply-form">
+                <div class="form-group">
+                    <textarea id="reply-content" required placeholder="请输入回复内容..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">发表回复</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const POST_ID = {{POST_ID}};
+        let post = null;
+
+        // 加载帖子详情
+        async function loadPost() {
+            try {
+                const response = await fetch(`/api/forum/posts/${POST_ID}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    post = result.data;
+                    displayPost(post);
+                    document.getElementById('breadcrumb-post-title').textContent = post.title;
+                } else {
+                    showError('加载失败: ' + result.error);
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            }
+        }
+
+        // 显示帖子详情
+        function displayPost(postData) {
+            const container = document.getElementById('post-detail');
+
+            container.innerHTML = `
+                <div class="post-header">
+                    <h1 class="post-title">${escapeHtml(postData.title)}</h1>
+                    <div class="post-meta">
+                        <div class="author">
+                            <div class="author-avatar">${postData.username ? postData.username[0].toUpperCase() : 'A'}</div>
+                            <span>${escapeHtml(postData.username)}</span>
+                        </div>
+                        <span>📅 ${formatDate(postData.created_at)}</span>
+                        ${postData.category ? `<span>🏷️ ${escapeHtml(postData.category)}</span>` : ''}
+                        <span>👁️ ${postData.views} 浏览</span>
+                        <span>💬 ${postData.reply_count} 回复</span>
+                    </div>
+                </div>
+                <div class="post-content">${escapeHtml(postData.content)}</div>
+                <div class="post-stats">
+                    <button onclick="toggleLike(${postData.id})" id="like-button">
+                        ❤️ <span id="like-count">${postData.like_count}</span>
+                    </button>
+                </div>
+            `;
+        }
+
+        // 加载回复列表
+        async function loadReplies() {
+            try {
+                const response = await fetch(`/api/forum/posts/${POST_ID}/replies`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayReplies(result.data.replies);
+                    document.getElementById('reply-count').textContent = result.data.pagination.total;
+                }
+            } catch (error) {
+                console.error('加载回复失败:', error);
+            }
+        }
+
+        // 显示回复列表
+        function displayReplies(replies) {
+            const container = document.getElementById('reply-list');
+
+            if (replies.length === 0) {
+                container.innerHTML = '<li class="loading">暂无回复</li>';
+                return;
+            }
+
+            container.innerHTML = replies.map(reply => `
+                <li class="reply-item">
+                    <div class="reply-header">
+                        <div class="reply-author">
+                            <div class="avatar">${reply.username ? reply.username[0].toUpperCase() : 'A'}</div>
+                            <span class="name">${escapeHtml(reply.username)}</span>
+                        </div>
+                        <span class="reply-time">${formatDate(reply.created_at)}</span>
+                    </div>
+                    <div class="reply-content">${escapeHtml(reply.content)}</div>
+                    <div class="reply-actions">
+                        <button>❤️ ${reply.like_count}</button>
+                        <button onclick="deleteReply(${reply.id})">删除</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // 切换点赞
+        async function toggleLike(postId) {
+            try {
+                const response = await fetch(`/api/forum/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: 'toggle' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('like-count').textContent = result.data.like_count;
+                    const likeButton = document.getElementById('like-button');
+                    if (result.data.has_liked) {
+                        likeButton.classList.add('liked');
+                    } else {
+                        likeButton.classList.remove('liked');
+                    }
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+            }
+        }
+
+        // 发表回复
+        document.getElementById('reply-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const content = document.getElementById('reply-content').value.trim();
+
+            try {
+                const response = await fetch(`/api/forum/posts/${POST_ID}/replies`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ content })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('reply-content').value = '';
+                    loadReplies();
+                    loadPost(); // 重新加载以更新回复计数
+                } else {
+                    alert('回复失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            }
+        });
+
+        // 删除回复
+        async function deleteReply(replyId) {
+            if (!confirm('确定要删除这条回复吗？')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/forum/replies/${replyId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    loadReplies();
+                    loadPost(); // 重新加载以更新回复计数
+                } else {
+                    alert('删除失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('网络错误: ' + error.message);
+            }
+        }
+
+        // 显示错误
+        function showError(message) {
+            document.getElementById('post-detail').innerHTML = `<div class="error">${message}</div>`;
+        }
+
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diff = now - date;
+
+            const minute = 60 * 1000;
+            const hour = 60 * minute;
+            const day = 24 * hour;
+
+            if (diff < minute) {
+                return '刚刚';
+            } else if (diff < hour) {
+                return Math.floor(diff / minute) + '分钟前';
+            } else if (diff < day) {
+                return Math.floor(diff / hour) + '小时前';
+            } else if (diff < 7 * day) {
+                return Math.floor(diff / day) + '天前';
+            } else {
+                return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            }
+        }
+
+        // HTML 转义
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPost();
+            loadReplies();
+        });
+    </script>
+</body>
+</html>
