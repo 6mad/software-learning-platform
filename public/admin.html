@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 软件学习平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-header::before {
+            content: "⚙️";
+            font-size: 24px;
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .nav-item {
+            color: rgba(255, 255, 255, 0.9);
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: white;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .nav-item::before {
+            content: attr(data-icon);
+            font-size: 18px;
+        }
+
+        .main-content {
+            flex: 1;
+            margin-left: 260px;
+            padding: 30px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .user-name {
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #718096;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #f7fafc;
+            color: #e53e3e;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 16px;
+        }
+
+        .stat-icon.users {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .stat-icon.posts {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .stat-icon.replies {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-icon.admins {
+            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            padding: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 10px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #718096;
+            text-transform: uppercase;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        tr:hover td {
+            background: #f7fafc;
+        }
+
+        .user-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .badge-user {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .badge-category {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #edf2f7;
+            color: #4a5568;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+
+        .page-btn {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .page-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .page-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #718096;
+        }
+
+        .empty-state::before {
+            content: "📭";
+            font-size: 48px;
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                padding: 12px;
+            }
+
+            .sidebar-header,
+            .nav-item span {
+                display: none;
+            }
+
+            .nav-item {
+                justify-content: center;
+                padding: 12px;
+            }
+
+            .main-content {
+                margin-left: 60px;
+                padding: 16px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">管理后台</div>
+        <div class="nav-menu">
+            <div class="nav-item active" data-section="dashboard" data-icon="📊">
+                <span>仪表板</span>
+            </div>
+            <div class="nav-item" data-section="users" data-icon="👥">
+                <span>用户管理</span>
+            </div>
+            <div class="nav-item" data-section="posts" data-icon="📝">
+                <span>帖子管理</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1 id="page-title">仪表板</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="user-avatar">A</div>
+                <span class="user-name" id="user-name">管理员</span>
+                <button class="logout-btn" onclick="logout()">退出</button>
+            </div>
+        </div>
+
+        <!-- 仪表板 -->
+        <div class="content-section active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon users">👥</div>
+                    <div class="stat-value" id="stat-users">0</div>
+                    <div class="stat-label">总用户数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon posts">📝</div>
+                    <div class="stat-value" id="stat-posts">0</div>
+                    <div class="stat-label">帖子总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon replies">💬</div>
+                    <div class="stat-value" id="stat-replies">0</div>
+                    <div class="stat-label">回复总数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon admins">👑</div>
+                    <div class="stat-value" id="stat-admins">0</div>
+                    <div class="stat-label">管理员数</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 用户管理 -->
+        <div class="content-section" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">用户列表</div>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="user-search" placeholder="搜索用户名或邮箱...">
+                    <button class="btn btn-primary" onclick="searchUsers()">搜索</button>
+                </div>
+                <div id="users-table">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 帖子管理 -->
+        <div class="content-section" id="posts">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">帖子列表</div>
+                </div>
+                <div class="search-box">
+                    <input type="text" class="search-input" id="post-search" placeholder="搜索帖子标题或内容...">
+                    <button class="btn btn-primary" onclick="searchPosts()">搜索</button>
+                </div>
+                <div id="posts-table">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentSection = 'dashboard';
+        let userPage = 1;
+        let postPage = 1;
+        let userSearch = '';
+        let postSearch = '';
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            checkLogin();
+            setupNavigation();
+            loadStats();
+        });
+
+        // 检查登录状态
+        async function checkLogin() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+
+                if (!data.success || !data.data.logged_in) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const user = data.data.user;
+                if (user.role !== 'admin') {
+                    alert('需要管理员权限');
+                    window.location.href = '/';
+                    return;
+                }
+
+                document.getElementById('user-avatar').textContent = user.username.charAt(0).toUpperCase();
+                document.getElementById('user-name').textContent = user.username;
+            } catch (error) {
+                console.error('检查登录状态失败:', error);
+                window.location.href = '/login';
+            }
+        }
+
+        // 设置导航
+        function setupNavigation() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    switchSection(section);
+                });
+            });
+        }
+
+        // 切换页面
+        function switchSection(section) {
+            currentSection = section;
+
+            // 更新导航状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-section') === section) {
+                    item.classList.add('active');
+                }
+            });
+
+            // 更新页面标题
+            const titles = {
+                'dashboard': '仪表板',
+                'users': '用户管理',
+                'posts': '帖子管理'
+            };
+            document.getElementById('page-title').textContent = titles[section];
+
+            // 切换内容区域
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(section).classList.add('active');
+
+            // 加载数据
+            if (section === 'users') {
+                loadUsers();
+            } else if (section === 'posts') {
+                loadPosts();
+            }
+        }
+
+        // 加载统计信息
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                const data = await response.json();
+
+                if (data.success) {
+                    const stats = data.data;
+                    document.getElementById('stat-users').textContent = stats.users;
+                    document.getElementById('stat-posts').textContent = stats.posts;
+                    document.getElementById('stat-replies').textContent = stats.replies;
+                    document.getElementById('stat-admins').textContent = stats.admin_users;
+                }
+            } catch (error) {
+                console.error('加载统计信息失败:', error);
+            }
+        }
+
+        // 加载用户列表
+        async function loadUsers(page = 1) {
+            userPage = page;
+            const container = document.getElementById('users-table');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const url = `/api/admin/users?page=${page}&limit=10&search=${encodeURIComponent(userSearch)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderUsersTable(data.data.users, data.data.pagination);
+                } else {
+                    container.innerHTML = '<div class="empty-state">加载失败</div>';
+                }
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+                container.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // 渲染用户表格
+        function renderUsersTable(users, pagination) {
+            const container = document.getElementById('users-table');
+
+            if (users.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无用户</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            users.forEach(user => {
+                const roleBadge = user.role === 'admin'
+                    ? '<span class="user-badge badge-admin">管理员</span>'
+                    : '<span class="user-badge badge-user">用户</span>';
+
+                const createdAt = new Date(user.created_at).toLocaleString('zh-CN');
+
+                html += `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.email || '-'}</td>
+                        <td>${roleBadge}</td>
+                        <td>${createdAt}</td>
+                        <td>
+                            <div class="actions">
+                                ${user.role === 'user' ? `<button class="btn btn-success" onclick="updateUserRole(${user.id}, 'admin')">设为管理员</button>` : ''}
+                                ${user.role === 'admin' ? `<button class="btn btn-danger" onclick="updateUserRole(${user.id}, 'user')">取消管理员</button>` : ''}
+                                <button class="btn btn-danger" onclick="deleteUser(${user.id})">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            if (pagination.pages > 1) {
+                html += '<div class="pagination">';
+                for (let i = 1; i <= pagination.pages; i++) {
+                    html += `<button class="page-btn ${i === pagination.page ? 'active' : ''}" onclick="loadUsers(${i})">${i}</button>`;
+                }
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 搜索用户
+        function searchUsers() {
+            userSearch = document.getElementById('user-search').value;
+            loadUsers(1);
+        }
+
+        // 修改用户角色
+        async function updateUserRole(userId, role) {
+            if (!confirm(`确定要${role === 'admin' ? '设为管理员' : '取消管理员'}吗？`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/role`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ role })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('操作成功');
+                    loadUsers(userPage);
+                    loadStats();
+                } else {
+                    alert(data.message || '操作失败');
+                }
+            } catch (error) {
+                console.error('修改角色失败:', error);
+                alert('操作失败');
+            }
+        }
+
+        // 删除用户
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除此用户吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('删除成功');
+                    loadUsers(userPage);
+                    loadStats();
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除用户失败:', error);
+                alert('删除失败');
+            }
+        }
+
+        // 加载帖子列表
+        async function loadPosts(page = 1) {
+            postPage = page;
+            const container = document.getElementById('posts-table');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const url = `/api/admin/posts?page=${page}&limit=10&search=${encodeURIComponent(postSearch)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    renderPostsTable(data.data.posts, data.data.pagination);
+                } else {
+                    container.innerHTML = '<div class="empty-state">加载失败</div>';
+                }
+            } catch (error) {
+                console.error('加载帖子列表失败:', error);
+                container.innerHTML = '<div class="empty-state">加载失败</div>';
+            }
+        }
+
+        // 渲染帖子表格
+        function renderPostsTable(posts, pagination) {
+            const container = document.getElementById('posts-table');
+
+            if (posts.length === 0) {
+                container.innerHTML = '<div class="empty-state">暂无帖子</div>';
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>标题</th>
+                            <th>作者</th>
+                            <th>分类</th>
+                            <th>回复</th>
+                            <th>点赞</th>
+                            <th>发布时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            posts.forEach(post => {
+                const createdAt = new Date(post.created_at).toLocaleString('zh-CN');
+
+                html += `
+                    <tr>
+                        <td>${post.id}</td>
+                        <td>${post.title}</td>
+                        <td>${post.username || '-'}</td>
+                        <td><span class="badge-category">${post.category || '综合讨论'}</span></td>
+                        <td>${post.reply_count || 0}</td>
+                        <td>${post.like_count || 0}</td>
+                        <td>${createdAt}</td>
+                        <td>
+                            <div class="actions">
+                                <button class="btn btn-danger" onclick="deletePost(${post.id})">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += '</tbody></table>';
+
+            if (pagination.pages > 1) {
+                html += '<div class="pagination">';
+                for (let i = 1; i <= pagination.pages; i++) {
+                    html += `<button class="page-btn ${i === pagination.page ? 'active' : ''}" onclick="loadPosts(${i})">${i}</button>`;
+                }
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        // 搜索帖子
+        function searchPosts() {
+            postSearch = document.getElementById('post-search').value;
+            loadPosts(1);
+        }
+
+        // 删除帖子
+        async function deletePost(postId) {
+            if (!confirm('确定要删除此帖子吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/posts/${postId}`, {
+                    method: 'DELETE'
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('删除成功');
+                    loadPosts(postPage);
+                    loadStats();
+                } else {
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除帖子失败:', error);
+                alert('删除失败');
+            }
+        }
+
+        // 退出登录
+        async function logout() {
+            if (!confirm('确定要退出登录吗？')) {
+                return;
+            }
+
+            try {
+                await fetch('/api/auth/logout', {
+                    method: 'POST'
+                });
+            } catch (error) {
+                console.error('退出登录失败:', error);
+            }
+
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

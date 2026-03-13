@@ -5,7 +5,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Slim\Routing\RouteCollectorProxy;
 use App\Controllers\SoftwareController;
+use App\Controllers\AdminController;
 use App\Middleware\AuthMiddleware;
+use App\Middleware\AdminMiddleware;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -118,6 +120,33 @@ $app->group('/api', function (RouteCollectorProxy $group) {
 
     // 获取分类列表
     $group->get('/forum/categories', [$forumController, 'getCategories']);
+
+    // 管理员路由（需要管理员权限）
+    $adminController = new AdminController();
+
+    // 获取统计信息
+    $group->get('/admin/stats', [$adminController, 'getStats'])
+          ->add(new AdminMiddleware());
+
+    // 获取所有用户
+    $group->get('/admin/users', [$adminController, 'getUsers'])
+          ->add(new AdminMiddleware());
+
+    // 删除用户
+    $group->delete('/admin/users/{id}', [$adminController, 'deleteUser'])
+          ->add(new AdminMiddleware());
+
+    // 修改用户角色
+    $group->put('/admin/users/{id}/role', [$adminController, 'updateUserRole'])
+          ->add(new AdminMiddleware());
+
+    // 获取所有帖子
+    $group->get('/admin/posts', [$adminController, 'getAllPosts'])
+          ->add(new AdminMiddleware());
+
+    // 删除帖子
+    $group->delete('/admin/posts/{id}', [$adminController, 'deletePost'])
+          ->add(new AdminMiddleware());
 });
 
 // 前端页面路由（服务静态文件）
@@ -180,6 +209,18 @@ $app->get('/login', function (Request $request, Response $response) {
         return $response->withHeader('Content-Type', 'text/html');
     }
     $response->getBody()->write('Login');
+    return $response->withHeader('Content-Type', 'text/plain');
+});
+
+// 管理后台页面
+$app->get('/admin', function (Request $request, Response $response) {
+    $htmlPath = __DIR__ . '/admin.html';
+    if (file_exists($htmlPath)) {
+        $html = file_get_contents($htmlPath);
+        $response->getBody()->write($html);
+        return $response->withHeader('Content-Type', 'text/html');
+    }
+    $response->getBody()->write('Admin Panel');
     return $response->withHeader('Content-Type', 'text/plain');
 });
 

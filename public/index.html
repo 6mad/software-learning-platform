@@ -50,6 +50,36 @@
         .header .nav-links a {
             color: white;
             text-decoration: none;
+            margin: 0 15px;
+            font-size: 1.1em;
+            transition: opacity 0.3s;
+            display: inline-block;
+        }
+
+        .header .nav-links a:hover {
+            opacity: 0.8;
+        }
+
+        .header .user-info {
+            margin-top: 15px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            display: inline-block;
+        }
+
+        .header .user-info a {
+            color: white;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 0.95em;
+        }
+
+        .header .user-info a:hover {
+            opacity: 0.8;
+        }
+            color: white;
+            text-decoration: none;
             padding: 10px 20px;
             border-radius: 25px;
             background: rgba(255,255,255,0.2);
@@ -151,6 +181,14 @@
                 <a href="/">学习平台</a>
                 <a href="/forum">💬 论坛交流</a>
             </div>
+            <div class="user-info" id="user-info" style="display: none;">
+                <span id="user-greeting">欢迎, <a href="#" id="user-name">用户</a></span>
+                <a href="#" id="admin-link" style="display: none;">⚙️ 管理后台</a>
+                <a href="#" id="logout-link">退出</a>
+            </div>
+            <div class="user-info" id="login-info">
+                <a href="/login">登录</a>
+            </div>
         </div>
 
         <div id="software-list" class="software-grid">
@@ -219,7 +257,51 @@
         }
 
         // 页面加载时获取软件列表
-        document.addEventListener('DOMContentLoaded', loadSoftwareList);
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSoftwareList();
+            checkLogin();
+        });
+
+        // 检查登录状态
+        async function checkLogin() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+
+                if (data.success && data.data.logged_in) {
+                    const user = data.data.user;
+                    document.getElementById('user-info').style.display = 'block';
+                    document.getElementById('login-info').style.display = 'none';
+                    document.getElementById('user-name').textContent = user.username;
+
+                    // 如果是管理员，显示管理后台链接
+                    if (user.role === 'admin') {
+                        document.getElementById('admin-link').style.display = 'inline';
+                    }
+                } else {
+                    document.getElementById('user-info').style.display = 'none';
+                    document.getElementById('login-info').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('检查登录状态失败:', error);
+            }
+        }
+
+        // 退出登录
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                location.reload();
+            } catch (error) {
+                console.error('退出登录失败:', error);
+            }
+        }
+
+        // 退出登录按钮
+        document.getElementById('logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            logout();
+        });
     </script>
 </body>
 </html>
