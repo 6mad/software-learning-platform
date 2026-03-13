@@ -89,9 +89,9 @@ CREATE TABLE IF NOT EXISTS reply_likes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 插入示例管理员用户
--- 密码: admin123 (使用 password_hash 生成)
+-- 密码: admin123
 INSERT INTO users (username, email, password_hash, role) VALUES
-('admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')
+('admin', 'admin@example.com', '$2y$12$oZaMTjAtllgESn7bKflxvOz9gMtZbJ3FMc2FGdQ000K2ZwNZhQAKa', 'admin')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- 插入示例帖子
