@@ -356,6 +356,8 @@ class AdminController
             'users' => (int)$this->db->query("SELECT COUNT(*) FROM users")->fetchColumn(),
             'posts' => (int)$this->db->query("SELECT COUNT(*) FROM forum_posts")->fetchColumn(),
             'replies' => (int)$this->db->query("SELECT COUNT(*) FROM forum_replies")->fetchColumn(),
+            'post_likes' => (int)$this->db->query("SELECT COUNT(*) FROM post_likes")->fetchColumn(),
+            'reply_likes' => (int)$this->db->query("SELECT COUNT(*) FROM reply_likes")->fetchColumn(),
             'admin_users' => (int)$this->db->query("SELECT COUNT(*) FROM users WHERE role = 'admin'")->fetchColumn(),
             'recent_posts' => $this->db->query("SELECT COUNT(*) FROM forum_posts WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn(),
             'recent_replies' => $this->db->query("SELECT COUNT(*) FROM forum_replies WHERE created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)")->fetchColumn()
@@ -365,6 +367,145 @@ class AdminController
             'success' => true,
             'data' => $stats
         ]);
+    }
+
+    /**
+     * 获取所有回复（管理后台）
+     */
+    public function getReplies(Request $request, Response $response): Response
+    {
+        $admin = $this->checkAdmin();
+
+        if (!$admin) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'message' => '需要管理员权限'
+            ], 403);
+        }
+
+        $page = (int)($request->getQueryParams()['page'] ?? 1);
+        $limit = (int)($request->getQueryParams()['limit'] ?? 20);
+        $search = $request->getQueryParams()['search'] ?? '';
+
+        $offset = ($page - 1) * $limit;
+
+        // 构建查询
+        $where = 'WHERE 1=1';
+        $params = [];
+
+        if ($search) {
+            $where .= ' AND (r.content LIKE :search OR u.username LIKE :search OR p.title LIKE :search)';
+            $params[':search'] = "%$search%";
+        }
+
+        // 获取回复列表
+        $sql = "SELECT r.*, u.username, u.avatar, p.title as post_title, p.id as post_id,
+                       (SELECT COUNT(*) FROM reply_likes WHERE reply_id = r.id) as like_count
+                FROM forum_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                LEFT JOIN forum_posts p ON r.post_id = p.id
+                $where
+                ORDER BY r.created_at DESC
+                LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, \PDO::PARAM_INT);
+        $stmt->execute();
+        $replies = $stmt->fetchAll();
+
+        // 获取总数
+        $countSql = "SELECT COUNT(*) FROM forum_replies r
+                     LEFT JOIN users u ON r.user_id = u.id
+                     LEFT JOIN forum_posts p ON r.post_id = p.id
+                     $where";
+        $countStmt = $this->db->prepare($countSql);
+
+        foreach ($params as $key => $value) {
+            $countStmt->bindValue($key, $value);
+        }
+
+        $countStmt->execute();
+        $total = $countStmt->fetchColumn();
+
+        return $this->jsonResponse($response, [
+            'success' => true,
+            'data' => [
+                'replies' => $replies,
+                'pagination' => [
+                    'page' => $page,
+                    'limit' => $limit,
+                    'total' => (int)$total,
+                    'pages' => ceil($total / $limit)
+                ]
+            ]
+        ]);
+    }
+
+    /**
+     * 删除回复（管理后台）
+     */
+    public function deleteReply(Request $request, Response $response, array $args): Response
+    {
+        $admin = $this->checkAdmin();
+
+        if (!$admin) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'message' => '需要管理员权限'
+            ], 403);
+        }
+
+        $replyId = (int)$args['id'];
+
+        // 获取回复信息以便更新帖子回复计数
+        $reply = $this->db->prepare("SELECT post_id FROM forum_replies WHERE id = ?")->fetchColumn([$replyId]);
+        if (!$reply) {
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'message' => '回复不存在'
+            ], 404);
+        }
+
+        $postId = (int)$reply;
+
+        // 开始事务
+        $this->db->beginTransaction();
+
+        try {
+            // 删除回复的点赞
+            $this->db->prepare("DELETE FROM reply_likes WHERE reply_id = ?")->execute([$replyId]);
+
+            // 删除回复的子回复的点赞
+            $this->db->prepare("DELETE FROM reply_likes WHERE reply_id IN (SELECT id FROM forum_replies WHERE parent_reply_id = ?)")->execute([$replyId]);
+
+            // 删除子回复
+            $this->db->prepare("DELETE FROM forum_replies WHERE parent_reply_id = ?")->execute([$replyId]);
+
+            // 删除回复本身
+            $this->db->prepare("DELETE FROM forum_replies WHERE id = ?")->execute([$replyId]);
+
+            // 更新帖子的回复计数
+            $this->db->prepare("UPDATE forum_posts SET reply_count = (SELECT COUNT(*) FROM forum_replies WHERE post_id = ?) WHERE id = ?")->execute([$postId, $postId]);
+
+            $this->db->commit();
+
+            return $this->jsonResponse($response, [
+                'success' => true,
+                'message' => '回复删除成功'
+            ]);
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            return $this->jsonResponse($response, [
+                'success' => false,
+                'message' => '删除失败: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**

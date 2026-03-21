@@ -111,8 +111,16 @@ $app->group('/api', function (RouteCollectorProxy $group) {
     $group->delete('/forum/replies/{reply_id}', [$forumController, 'deleteReply'])
           ->add(new AuthMiddleware());
 
+    // 更新回复（需要登录）
+    $group->put('/forum/replies/{reply_id}', [$forumController, 'updateReply'])
+          ->add(new AuthMiddleware());
+
     // 点赞/取消点赞帖子（需要登录）
     $group->post('/forum/posts/{id}/like', [$forumController, 'togglePostLike'])
+          ->add(new AuthMiddleware());
+
+    // 点赞/取消点赞回复（需要登录）
+    $group->post('/forum/replies/{reply_id}/like', [$forumController, 'toggleReplyLike'])
           ->add(new AuthMiddleware());
 
     // 获取论坛统计
@@ -146,6 +154,14 @@ $app->group('/api', function (RouteCollectorProxy $group) {
 
     // 删除帖子
     $group->delete('/admin/posts/{id}', [$adminController, 'deletePost'])
+          ->add(new AdminMiddleware());
+
+    // 获取所有回复
+    $group->get('/admin/replies', [$adminController, 'getReplies'])
+          ->add(new AdminMiddleware());
+
+    // 删除回复
+    $group->delete('/admin/replies/{id}', [$adminController, 'deleteReply'])
           ->add(new AdminMiddleware());
 });
 

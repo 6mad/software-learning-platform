@@ -170,12 +170,18 @@ class ForumModel
     /**
      * 获取帖子的回复列表
      */
-    public function getRepliesByPostId(int $postId, int $page = 1, int $limit = 20): array
+    public function getRepliesByPostId(int $postId, int $page = 1, int $limit = 20, ?int $currentUserId = null): array
     {
         $offset = ($page - 1) * $limit;
 
-        $sql = "SELECT r.*, u.username, u.avatar
-                FROM forum_replies r
+        $sql = "SELECT r.*, u.username, u.avatar,
+                (SELECT COUNT(*) FROM reply_likes rl WHERE rl.reply_id = r.id) as like_count";
+
+        if ($currentUserId !== null) {
+            $sql .= ", (SELECT COUNT(*) FROM reply_likes rl WHERE rl.reply_id = r.id AND rl.user_id = :current_user_id) as has_liked";
+        }
+
+        $sql .= " FROM forum_replies r
                 LEFT JOIN users u ON r.user_id = u.id
                 WHERE r.post_id = :post_id
                 ORDER BY r.created_at ASC
@@ -185,6 +191,11 @@ class ForumModel
         $stmt->bindValue(':post_id', $postId, PDO::PARAM_INT);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+        if ($currentUserId !== null) {
+            $stmt->bindValue(':current_user_id', $currentUserId, PDO::PARAM_INT);
+        }
+
         $stmt->execute();
 
         return $stmt->fetchAll();
@@ -318,6 +329,168 @@ class ForumModel
 
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':post_id', $postId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $result = $stmt->fetch();
+
+        return (int) $result['count'] > 0;
+    }
+
+    // ==================== 回复点赞相关操作 ====================
+
+    /**
+     * 获取所有回复（管理员用，支持分页和搜索）
+     */
+    public function getAllReplies(int $page = 1, int $limit = 20, string $search = ''): array
+    {
+        $offset = ($page - 1) * $limit;
+
+        $sql = "SELECT r.*, u.username, p.title as post_title
+                FROM forum_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                LEFT JOIN forum_posts p ON r.post_id = p.id
+                WHERE 1=1";
+
+        $params = [];
+
+        if ($search) {
+            $sql .= " AND (r.content LIKE :search OR u.username LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $sql .= " ORDER BY r.created_at DESC LIMIT :limit OFFSET :offset";
+
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * 获取所有回复总数（管理员用）
+     */
+    public function getAllRepliesCount(string $search = ''): int
+    {
+        $sql = "SELECT COUNT(*) as total FROM forum_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                WHERE 1=1";
+        $params = [];
+
+        if ($search) {
+            $sql .= " AND (r.content LIKE :search OR u.username LIKE :search)";
+            $params[':search'] = "%$search%";
+        }
+
+        $stmt = $this->db->prepare($sql);
+
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+
+        $stmt->execute();
+        $result = $stmt->fetch();
+
+        return (int) $result['total'];
+    }
+
+    /**
+     * 根据 ID 获取单条回复
+     */
+    public function getReplyById(int $replyId): ?array
+    {
+        $sql = "SELECT r.*, u.username, u.avatar
+                FROM forum_replies r
+                LEFT JOIN users u ON r.user_id = u.id
+                WHERE r.id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $replyId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetch() ?: null;
+    }
+
+    /**
+     * 更新回复内容
+     */
+    public function updateReply(int $replyId, string $content): bool
+    {
+        $sql = "UPDATE forum_replies SET content = :content WHERE id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':content', $content);
+        $stmt->bindValue(':id', $replyId, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
+
+    /**
+     * 切换回复点赞状态
+     */
+    public function toggleReplyLike(int $replyId, int $userId): bool
+    {
+        $sql = "INSERT INTO reply_likes (reply_id, user_id) VALUES (:reply_id, :user_id)
+                ON DUPLICATE KEY UPDATE id = LAST_INSERT_ID(id)";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':reply_id', $replyId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $this->updateReplyLikeCount($replyId);
+
+        return true;
+    }
+
+    /**
+     * 取消回复点赞
+     */
+    public function unlikeReply(int $replyId, int $userId): bool
+    {
+        $sql = "DELETE FROM reply_likes WHERE reply_id = :reply_id AND user_id = :user_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':reply_id', $replyId, PDO::PARAM_INT);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $this->updateReplyLikeCount($replyId);
+
+        return true;
+    }
+
+    /**
+     * 更新回复点赞计数
+     */
+    private function updateReplyLikeCount(int $replyId): bool
+    {
+        $sql = "UPDATE forum_replies r
+                SET like_count = (SELECT COUNT(*) FROM reply_likes l WHERE l.reply_id = r.id)
+                WHERE r.id = :id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':id', $replyId, PDO::PARAM_INT);
+
+        return $stmt->execute();
+    }
+
+    /**
+     * 检查用户是否已点赞回复
+     */
+    public function hasUserLikedReply(int $replyId, int $userId): bool
+    {
+        $sql = "SELECT COUNT(*) as count FROM reply_likes WHERE reply_id = :reply_id AND user_id = :user_id";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':reply_id', $replyId, PDO::PARAM_INT);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
 

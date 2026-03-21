@@ -235,8 +235,53 @@
             transition: color 0.3s ease;
         }
 
-        .reply-actions button:hover {
-            color: #667eea;
+        .reply-actions button.liked {
+            color: #e53e3e;
+        }
+
+        .reply-edit-form {
+            margin-top: 10px;
+        }
+
+        .reply-edit-form textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9em;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .reply-edit-form textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .reply-edit-form .btn-row {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .reply-edit-form .btn {
+            padding: 6px 16px;
+            font-size: 0.85em;
+        }
+
+        .btn-sm {
+            padding: 6px 16px;
+            font-size: 0.85em;
+        }
+
+        .btn-sm.btn-cancel {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-sm.btn-cancel:hover {
+            background: #cbd5e0;
         }
 
         .reply-form {
@@ -375,6 +420,7 @@
     <script>
         const POST_ID = {{POST_ID}};
         let post = null;
+        let currentUser = null;
 
         // 加载帖子详情
         async function loadPost() {
@@ -446,7 +492,7 @@
             }
 
             container.innerHTML = replies.map(reply => `
-                <li class="reply-item">
+                <li class="reply-item" id="reply-${reply.id}">
                     <div class="reply-header">
                         <div class="reply-author">
                             <div class="avatar">${reply.username ? reply.username[0].toUpperCase() : 'A'}</div>
@@ -454,13 +500,109 @@
                         </div>
                         <span class="reply-time">${formatDate(reply.created_at)}</span>
                     </div>
-                    <div class="reply-content">${escapeHtml(reply.content)}</div>
-                    <div class="reply-actions">
-                        <button>❤️ ${reply.like_count}</button>
-                        <button onclick="deleteReply(${reply.id})">删除</button>
+                    <div class="reply-content" id="reply-content-${reply.id}">${escapeHtml(reply.content)}</div>
+                    <div class="reply-actions" id="reply-actions-${reply.id}">
+                        <button onclick="toggleReplyLike(${reply.id})" id="reply-like-btn-${reply.id}" class="${reply.has_liked ? 'liked' : ''}">
+                            ${reply.has_liked ? '❤️' : '🤍'} <span id="reply-like-count-${reply.id}">${reply.like_count || 0}</span>
+                        </button>
+                        <button onclick="showReplyEdit(${reply.id}, '${escapeAttr(reply.content)}')">✏️ 编辑</button>
+                        <button onclick="deleteReply(${reply.id})">🗑️ 删除</button>
                     </div>
                 </li>
             `).join('');
+        }
+
+        // 切换回复点赞
+        async function toggleReplyLike(replyId) {
+            try {
+                const response = await fetch(`/api/forum/replies/${replyId}/like`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'toggle' })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const btn = document.getElementById(`reply-like-btn-${replyId}`);
+                    const countEl = document.getElementById(`reply-like-count-${replyId}`);
+                    countEl.textContent = result.data.like_count;
+                    if (result.data.has_liked) {
+                        btn.classList.add('liked');
+                        btn.innerHTML = `❤️ <span id="reply-like-count-${replyId}">${result.data.like_count}</span>`;
+                    } else {
+                        btn.classList.remove('liked');
+                        btn.innerHTML = `🤍 <span id="reply-like-count-${replyId}">${result.data.like_count}</span>`;
+                    }
+                } else {
+                    alert(result.error || '操作失败');
+                }
+            } catch (error) {
+                console.error('点赞失败:', error);
+            }
+        }
+
+        // 显示回复编辑表单
+        function showReplyEdit(replyId, content) {
+            const actionsEl = document.getElementById(`reply-actions-${replyId}`);
+            const contentEl = document.getElementById(`reply-content-${replyId}`);
+
+            // 如果已有编辑表单，先移除
+            const existing = document.getElementById(`reply-edit-form-${replyId}`);
+            if (existing) {
+                existing.remove();
+                return;
+            }
+
+            const formHtml = `
+                <div class="reply-edit-form" id="reply-edit-form-${replyId}">
+                    <textarea id="reply-edit-textarea-${replyId}">${escapeHtml(content)}</textarea>
+                    <div class="btn-row">
+                        <button class="btn btn-primary btn-sm" onclick="saveReplyEdit(${replyId})">保存</button>
+                        <button class="btn btn-cancel btn-sm" onclick="cancelReplyEdit(${replyId})">取消</button>
+                    </div>
+                </div>
+            `;
+
+            contentEl.insertAdjacentHTML('afterend', formHtml);
+            document.getElementById(`reply-edit-textarea-${replyId}`).focus();
+        }
+
+        // 保存回复编辑
+        async function saveReplyEdit(replyId) {
+            const textarea = document.getElementById(`reply-edit-textarea-${replyId}`);
+            const newContent = textarea.value.trim();
+
+            if (!newContent) {
+                alert('回复内容不能为空');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/forum/replies/${replyId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content: newContent })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById(`reply-content-${replyId}`).textContent = result.data.content;
+                    cancelReplyEdit(replyId);
+                } else {
+                    alert(result.error || '更新失败');
+                }
+            } catch (error) {
+                console.error('更新回复失败:', error);
+                alert('更新失败');
+            }
+        }
+
+        // 取消回复编辑
+        function cancelReplyEdit(replyId) {
+            const form = document.getElementById(`reply-edit-form-${replyId}`);
+            if (form) form.remove();
         }
 
         // 切换点赞
@@ -573,9 +715,16 @@
 
         // HTML 转义
         function escapeHtml(text) {
+            if (!text) return '';
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // 属性转义
+        function escapeAttr(text) {
+            if (!text) return '';
+            return text.replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, ' ');
         }
 
         // 页面加载时初始化

@@ -245,7 +245,11 @@ class ForumController
         $page = (int) ($params['page'] ?? 1);
         $limit = (int) ($params['limit'] ?? 20);
 
-        $replies = $this->forumModel->getRepliesByPostId($postId, $page, $limit);
+        // 传入当前用户 ID 以返回点赞状态
+        $currentUserId = $request->getAttribute('user_id');
+        $userId = $currentUserId ? (int) $currentUserId : null;
+
+        $replies = $this->forumModel->getRepliesByPostId($postId, $page, $limit, $userId);
         $total = $this->forumModel->getRepliesCount($postId);
         $totalPages = (int) ceil($total / $limit);
 
@@ -309,6 +313,47 @@ class ForumController
     }
 
     /**
+     * 更新回复
+     */
+    public function updateReply(Request $request, Response $response, array $args): Response
+    {
+        if (!$this->checkDatabase()) {
+            return $this->databaseErrorResponse($response);
+        }
+
+        $replyId = (int) $args['reply_id'];
+        $data = $request->getParsedBody();
+
+        if (empty($data['content'])) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => '回复内容不能为空'
+            ]));
+            return $response->withStatus(400)->withHeader('Content-Type', 'application/json');
+        }
+
+        $success = $this->forumModel->updateReply($replyId, $data['content']);
+
+        if (!$success) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => '更新失败'
+            ]));
+            return $response->withStatus(500)->withHeader('Content-Type', 'application/json');
+        }
+
+        $reply = $this->forumModel->getReplyById($replyId);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'data' => $reply,
+            'message' => '回复更新成功'
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
      * 删除回复
      */
     public function deleteReply(Request $request, Response $response, array $args): Response
@@ -338,18 +383,24 @@ class ForumController
      */
     public function togglePostLike(Request $request, Response $response, array $args): Response
     {
+        $userId = $request->getAttribute('user_id');
+        if (!$userId) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => '请先登录'
+            ]));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
         $postId = (int) $args['id'];
         $data = $request->getParsedBody();
         $action = $data['action'] ?? 'toggle'; // toggle, like, unlike
 
-        // TODO: 从会话中获取用户 ID，暂时使用固定用户
-        $userId = 1; // 管理员用户 ID
-
         if ($action === 'unlike') {
-            $this->forumModel->unlikePost($postId, $userId);
+            $this->forumModel->unlikePost($postId, (int) $userId);
             $message = '取消点赞成功';
         } else {
-            $this->forumModel->togglePostLike($postId, $userId);
+            $this->forumModel->togglePostLike($postId, (int) $userId);
             $message = '点赞成功';
         }
 
@@ -359,7 +410,47 @@ class ForumController
             'success' => true,
             'data' => [
                 'like_count' => $post['like_count'],
-                'has_liked' => $this->forumModel->hasUserLikedPost($postId, $userId)
+                'has_liked' => $this->forumModel->hasUserLikedPost($postId, (int) $userId)
+            ],
+            'message' => $message
+        ]));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    }
+
+    /**
+     * 点赞/取消点赞回复
+     */
+    public function toggleReplyLike(Request $request, Response $response, array $args): Response
+    {
+        $userId = $request->getAttribute('user_id');
+        if (!$userId) {
+            $response->getBody()->write(json_encode([
+                'success' => false,
+                'error' => '请先登录'
+            ]));
+            return $response->withStatus(401)->withHeader('Content-Type', 'application/json');
+        }
+
+        $replyId = (int) $args['reply_id'];
+        $data = $request->getParsedBody();
+        $action = $data['action'] ?? 'toggle'; // toggle, like, unlike
+
+        if ($action === 'unlike') {
+            $this->forumModel->unlikeReply($replyId, (int) $userId);
+            $message = '取消点赞成功';
+        } else {
+            $this->forumModel->toggleReplyLike($replyId, (int) $userId);
+            $message = '点赞成功';
+        }
+
+        $reply = $this->forumModel->getReplyById($replyId);
+
+        $response->getBody()->write(json_encode([
+            'success' => true,
+            'data' => [
+                'like_count' => $reply['like_count'],
+                'has_liked' => $this->forumModel->hasUserLikedReply($replyId, (int) $userId)
             ],
             'message' => $message
         ]));
