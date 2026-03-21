@@ -75,9 +75,7 @@ class Database
     private function createConnection(): PDO
     {
         $dsn = sprintf(
-            "mysql:host=%s;port=%d;dbname=%s;charset=%s",
-            $this->config['host'] ?? 'localhost',
-            $this->config['port'] ?? 3306,
+            "mysql:unix_socket=/data/data/com.termux/files/usr/var/run/mysqld.sock;dbname=%s;charset=%s",
             $this->config['name'] ?? 'software_learning_platform',
             $this->config['charset'] ?? 'utf8mb4'
         );
