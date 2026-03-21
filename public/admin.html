@@ -492,8 +492,9 @@
                     <div class="card-title">用户列表</div>
                 </div>
                 <div class="search-box">
-                    <input type="text" class="search-input" id="user-search" placeholder="搜索用户名或邮箱...">
+                    <input type="text" class="search-input" id="user-search" placeholder="搜索用户名或邮箱..." onkeydown="if(event.key==='Enter')searchUsers()">
                     <button class="btn btn-primary" onclick="searchUsers()">搜索</button>
+                    <button class="btn btn-danger" onclick="clearUserSearch()">清除</button>
                 </div>
                 <div id="users-table">
                     <div class="loading">加载中...</div>
@@ -508,8 +509,9 @@
                     <div class="card-title">帖子列表</div>
                 </div>
                 <div class="search-box">
-                    <input type="text" class="search-input" id="post-search" placeholder="搜索帖子标题或内容...">
+                    <input type="text" class="search-input" id="post-search" placeholder="搜索帖子标题或内容..." onkeydown="if(event.key==='Enter')searchPosts()">
                     <button class="btn btn-primary" onclick="searchPosts()">搜索</button>
+                    <button class="btn btn-danger" onclick="clearPostSearch()">清除</button>
                 </div>
                 <div id="posts-table">
                     <div class="loading">加载中...</div>
@@ -524,8 +526,9 @@
                     <div class="card-title">评论列表</div>
                 </div>
                 <div class="search-box">
-                    <input type="text" class="search-input" id="reply-search" placeholder="搜索评论内容、用户名或帖子标题...">
+                    <input type="text" class="search-input" id="reply-search" placeholder="搜索评论内容、用户名或帖子标题..." onkeydown="if(event.key==='Enter')searchReplies()">
                     <button class="btn btn-primary" onclick="searchReplies()">搜索</button>
+                    <button class="btn btn-danger" onclick="clearReplySearch()">清除</button>
                 </div>
                 <div id="replies-table">
                     <div class="loading">加载中...</div>
@@ -616,10 +619,13 @@
 
             // 加载数据
             if (section === 'users') {
+                document.getElementById('user-search').value = userSearch;
                 loadUsers();
             } else if (section === 'posts') {
+                document.getElementById('post-search').value = postSearch;
                 loadPosts();
             } else if (section === 'replies') {
+                document.getElementById('reply-search').value = replySearch;
                 loadReplies();
             }
         }
@@ -731,6 +737,13 @@
         // 搜索用户
         function searchUsers() {
             userSearch = document.getElementById('user-search').value;
+            loadUsers(1);
+        }
+
+        // 清除用户搜索
+        function clearUserSearch() {
+            document.getElementById('user-search').value = '';
+            userSearch = '';
             loadUsers(1);
         }
 
@@ -876,6 +889,13 @@
             loadPosts(1);
         }
 
+        // 清除帖子搜索
+        function clearPostSearch() {
+            document.getElementById('post-search').value = '';
+            postSearch = '';
+            loadPosts(1);
+        }
+
         // 删除帖子
         async function deletePost(postId) {
             if (!confirm('确定要删除此帖子吗？此操作不可恢复！')) {
@@ -987,6 +1007,13 @@
         // 搜索评论
         function searchReplies() {
             replySearch = document.getElementById('reply-search').value;
+            loadReplies(1);
+        }
+
+        // 清除评论搜索
+        function clearReplySearch() {
+            document.getElementById('reply-search').value = '';
+            replySearch = '';
             loadReplies(1);
         }
 

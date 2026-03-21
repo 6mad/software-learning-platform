@@ -64,8 +64,9 @@ class AdminController
         $params = [];
 
         if ($search) {
-            $where = 'WHERE username LIKE :search OR email LIKE :search';
-            $params[':search'] = "%$search%";
+            $where = 'WHERE username LIKE :search1 OR email LIKE :search2';
+            $params[':search1'] = "%$search%";
+            $params[':search2'] = "%$search%";
         }
 
         // 获取用户列表
@@ -240,8 +241,10 @@ class AdminController
         $params = [];
 
         if ($search) {
-            $where .= ' AND (p.title LIKE :search OR p.content LIKE :search OR u.username LIKE :search)';
-            $params[':search'] = "%$search%";
+            $where .= ' AND (p.title LIKE :search1 OR p.content LIKE :search2 OR u.username LIKE :search3)';
+            $params[':search1'] = "%$search%";
+            $params[':search2'] = "%$search%";
+            $params[':search3'] = "%$search%";
         }
 
         // 获取帖子列表
@@ -394,8 +397,10 @@ class AdminController
         $params = [];
 
         if ($search) {
-            $where .= ' AND (r.content LIKE :search OR u.username LIKE :search OR p.title LIKE :search)';
-            $params[':search'] = "%$search%";
+            $where .= ' AND (r.content LIKE :search1 OR u.username LIKE :search2 OR p.title LIKE :search3)';
+            $params[':search1'] = "%$search%";
+            $params[':search2'] = "%$search%";
+            $params[':search3'] = "%$search%";
         }
 
         // 获取回复列表

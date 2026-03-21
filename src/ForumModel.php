@@ -355,8 +355,9 @@ class ForumModel
         $params = [];
 
         if ($search) {
-            $sql .= " AND (r.content LIKE :search OR u.username LIKE :search)";
-            $params[':search'] = "%$search%";
+            $sql .= " AND (r.content LIKE :search1 OR u.username LIKE :search2)";
+            $params[':search1'] = "%$search%";
+            $params[':search2'] = "%$search%";
         }
 
         $sql .= " ORDER BY r.created_at DESC LIMIT :limit OFFSET :offset";
@@ -385,8 +386,9 @@ class ForumModel
         $params = [];
 
         if ($search) {
-            $sql .= " AND (r.content LIKE :search OR u.username LIKE :search)";
-            $params[':search'] = "%$search%";
+            $sql .= " AND (r.content LIKE :search1 OR u.username LIKE :search2)";
+            $params[':search1'] = "%$search%";
+            $params[':search2'] = "%$search%";
         }
 
         $stmt = $this->db->prepare($sql);
